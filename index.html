@@ -200,6 +200,36 @@ let timerInterval=null
 let timerTarget=null
 let workedInterval=null
 
+// ─── persistence ───
+const STORAGE_KEY='ponto-v1'
+
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      date:new Date().toISOString().slice(0,10),
+      entrada:document.getElementById('entrada').value,
+      almocoInicio:document.getElementById('almocoInicio').value,
+      almocoFim:document.getElementById('almocoFim').value,
+      saida:document.getElementById('saida').value,
+      carga:document.getElementById('cargaHoraria').value
+    }))
+  }catch(e){}
+}
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY)
+    if(!raw) return
+    const s=JSON.parse(raw)
+    if(s.date!==new Date().toISOString().slice(0,10)) return
+    if(s.entrada) document.getElementById('entrada').value=s.entrada
+    if(s.almocoInicio) document.getElementById('almocoInicio').value=s.almocoInicio
+    if(s.almocoFim) document.getElementById('almocoFim').value=s.almocoFim
+    if(s.saida) document.getElementById('saida').value=s.saida
+    if(s.carga) document.getElementById('cargaHoraria').value=s.carga
+  }catch(e){}
+}
+
 // ─── worked hours counter ───
 function updateWorked(){
   const entrada=document.getElementById('entrada').value
@@ -336,10 +366,11 @@ function calcular(){
   document.getElementById('vJornadaTotal').textContent=fmtMin(totalMin)
   document.getElementById('vAlmocoDur').textContent=almocoDurMin!==null?fmtMin(almocoDurMin):fmtMin(minAlm)+' (mín)'
 
+  let realWorkedMin=null
   if(saida){
     const saidaDate=timeToDate(saida)
     const lunchMs=almocoEfetivoMin*60000
-    const realWorkedMin=(saidaDate-entradaDate-lunchMs)/60000
+    realWorkedMin=(saidaDate-entradaDate-lunchMs)/60000
     const diff=realWorkedMin-cargaMin
     document.getElementById('lSaida').textContent='Saída real'
     document.getElementById('vSaida').textContent=saida
@@ -352,22 +383,41 @@ function calcular(){
     document.getElementById('vEfetivo').className='stat-value'
   }
 
-  // Warnings
+  // Warnings — {msg, type}
   const warnings=[]
   const dEntAlm=diffMin(entrada,almocoInicio)
-  if(dEntAlm!==null&&dEntAlm<0)  warnings.push('⛔ Almoço antes da entrada?')
-  if(dEntAlm!==null&&dEntAlm>=0&&dEntAlm<15) warnings.push('⛔ Menos de 15 min entre entrada e almoço.')
-  if(dEntAlm!==null&&dEntAlm>=15&&dEntAlm<60) warnings.push('⛔ Almoço deve ser no mínimo 1h após a entrada.')
+  if(dEntAlm!==null&&dEntAlm<0)  warnings.push({msg:'⛔ Almoço antes da entrada?',type:'error'})
+  if(dEntAlm!==null&&dEntAlm>=0&&dEntAlm<15) warnings.push({msg:'⛔ Menos de 15 min entre entrada e almoço.',type:'error'})
+  if(dEntAlm!==null&&dEntAlm>=15&&dEntAlm<60) warnings.push({msg:'⛔ Almoço deve ser no mínimo 1h após a entrada.',type:'error'})
 
   if(almocoDurMin!==null){
-    if(almocoDurMin<15) warnings.push('⛔ Almoço menor que 15 min.')
-    else if(almocoDurMin<minAlm) warnings.push(`⛔ Almoço de ${fmtMin(almocoDurMin)} é menor que o mínimo de ${fmtMin(minAlm)}.`)
+    if(almocoDurMin<15) warnings.push({msg:'⛔ Almoço menor que 15 min.',type:'error'})
+    else if(almocoDurMin<minAlm) warnings.push({msg:`⛔ Almoço de ${fmtMin(almocoDurMin)} é menor que o mínimo de ${fmtMin(minAlm)}.`,type:'error'})
     const dFimSai=diffMin(almocoFim,saidaStr)
-    if(dFimSai!==null&&dFimSai<60) warnings.push('⛔ Menos de 1h de trabalho após o almoço até a saída.')
+    if(dFimSai!==null&&dFimSai<60) warnings.push({msg:'⛔ Menos de 1h de trabalho após o almoço até a saída.',type:'error'})
+  }
+
+  if(realWorkedMin!==null&&realWorkedMin>600){
+    warnings.push({msg:`⛔ ${fmtMin(realWorkedMin)} trabalhadas — limite CLT são 10h diárias (art. 59).`,type:'error'})
+  }
+
+  const exitRef=saida||saidaStr
+  if(exitRef){
+    const exitH=parseInt(exitRef.split(':')[0])
+    const exitM=parseInt(exitRef.split(':')[1])
+    const exitTotalMin=exitH*60+exitM
+    if(exitH>=22){
+      warnings.push({msg:'🌙 Saída após 22h — período de hora noturna com adicional de 20% (CLT art. 73).',type:'orange'})
+    }
+    if(exitTotalMin>=20*60){
+      const nextMin=(exitTotalMin+12*60)%(24*60)
+      const nH=Math.floor(nextMin/60), nM=nextMin%60
+      warnings.push({msg:`⏰ Saída às ${exitRef} → próxima entrada mínima: ${pad(nH)}:${pad(nM)} (descanso 12h — CLT art. 66).`,type:'orange'})
+    }
   }
 
   if(warnings.length){
-    warnEl.innerHTML=warnings.map(w=>`<div class="warning error">${w}</div>`).join('')
+    warnEl.innerHTML=warnings.map(w=>`<div class="warning ${w.type}">${w.msg}</div>`).join('')
   } else {
     if(almocoDurMin!==null){
       warnEl.innerHTML=`<div class="warning ok">✅ Almoço de ${fmtMin(almocoDurMin)}. Saída às ${saidaStr}.</div>`
@@ -447,11 +497,11 @@ function updateRegistrarBtn(){
 }
 
 // ─── events ───
-document.getElementById('entrada').addEventListener('input',function(){calcular();updateRegistrarBtn()})
-document.getElementById('almocoInicio').addEventListener('input',function(){calcular();updateRegistrarBtn()})
-document.getElementById('almocoFim').addEventListener('input',function(){calcular();updateRegistrarBtn()})
-document.getElementById('saida').addEventListener('input',function(){calcular();updateRegistrarBtn()})
-document.getElementById('cargaHoraria').addEventListener('change',calcular)
+document.getElementById('entrada').addEventListener('input',function(){calcular();updateRegistrarBtn();saveState()})
+document.getElementById('almocoInicio').addEventListener('input',function(){calcular();updateRegistrarBtn();saveState()})
+document.getElementById('almocoFim').addEventListener('input',function(){calcular();updateRegistrarBtn();saveState()})
+document.getElementById('saida').addEventListener('input',function(){calcular();updateRegistrarBtn();saveState()})
+document.getElementById('cargaHoraria').addEventListener('change',function(){calcular();saveState()})
 
 document.getElementById('btnRegistrar').addEventListener('click',function(){
   const now=new Date()
@@ -471,7 +521,12 @@ document.getElementById('btnRegistrar').addEventListener('click',function(){
   }
   calcular()
   updateRegistrarBtn()
+  saveState()
 })
+
+loadState()
+calcular()
+updateRegistrarBtn()
 </script>
 </body>
 </html>
