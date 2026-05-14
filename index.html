@@ -19,6 +19,10 @@ h1 small{font-size:13px;font-weight:400;color:var(--dim)}
 .field input:focus,.field select:focus{border-color:var(--accent)}
 .field select option{background:var(--card);color:var(--text)}
 .registrar-hint{font-size:11px;color:var(--dim);text-align:center;margin-top:6px}
+.btn{display:block;width:100%;padding:16px;margin-top:14px;border:none;border-radius:12px;font-size:17px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:-0.2px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#5a7ae8);color:#fff}
+.btn-primary:hover:not(:disabled){background:linear-gradient(135deg,#7d9aff,#6c8cff);box-shadow:0 4px 20px rgba(108,140,255,0.35);transform:translateY(-1px)}
+.btn-primary:active:not(:disabled){transform:translateY(0);box-shadow:0 2px 8px rgba(108,140,255,0.2)}
 .btn-primary:disabled{opacity:0.35;cursor:default}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .stat{padding:12px;border-radius:10px;background:var(--bg);text-align:center}
@@ -93,7 +97,7 @@ h1 small{font-size:13px;font-weight:400;color:var(--dim)}
       </div>
     </div>
 
-    <button class="btn btn-primary" id="btnRegistrar" style="margin-top:12px">⏺ Registrar entrada</button>
+    <button class="btn btn-primary" id="btnRegistrar">⏺ Registrar entrada</button>
     <p class="registrar-hint" id="registrarHint">Vai marcar sua entrada agora</p>
 
   </div>
