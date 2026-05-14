@@ -15,7 +15,9 @@ h1 small{font-size:13px;font-weight:400;color:var(--dim)}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .field{flex:1;min-width:120px}
 .field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim);margin-bottom:4px}
-.field input,.field select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;outline:none;transition:border 0.15s}
+.field input,.field select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;outline:none;transition:border 0.15s;-webkit-appearance:none;appearance:none}
+.field input[type="time"]::-webkit-calendar-picker-indicator{display:none}
+.field input[type="time"]::-webkit-date-and-time-value{text-align:left}
 .field input:focus,.field select:focus{border-color:var(--accent)}
 .field select option{background:var(--card);color:var(--text)}
 .registrar-hint{font-size:11px;color:var(--dim);text-align:center;margin-top:6px}
