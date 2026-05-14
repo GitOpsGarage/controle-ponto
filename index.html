@@ -15,10 +15,13 @@ h1 small{font-size:13px;font-weight:400;color:var(--dim)}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .field{flex:1;min-width:120px}
 .field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim);margin-bottom:4px}
-.field input,.field select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;outline:none;transition:border 0.15s}
-.field select{-webkit-appearance:none;appearance:none}
+.field input,.field select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;outline:none;transition:border 0.15s;-webkit-appearance:none;appearance:none;-webkit-text-fill-color:var(--text)}
 .field input:focus,.field select:focus{border-color:var(--accent)}
 .field select option{background:var(--card);color:var(--text)}
+input[type="time"]::-webkit-date-and-time-value{color:var(--text);min-height:1.5em;text-align:left}
+input[type="time"]::-webkit-datetime-edit{color:var(--text);padding:0}
+input[type="time"]::-webkit-datetime-edit-fields-wrapper{color:var(--text)}
+input[type="time"]::-webkit-inner-spin-button,input[type="time"]::-webkit-clear-button{display:none;-webkit-appearance:none}
 .registrar-hint{font-size:11px;color:var(--dim);text-align:center;margin-top:6px}
 .btn{display:block;width:100%;padding:16px;margin-top:14px;border:none;border-radius:12px;font-size:17px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:-0.2px}
 .btn-primary{background:linear-gradient(135deg,var(--accent),#5a7ae8);color:#fff}
