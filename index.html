@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ponto — Controle de Jornada</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f13;--card:#1a1a24;--border:#2a2a3a;--text:#e0e0e8;--dim:#8888a0;--accent:#6c8cff;--green:#4cd964;--yellow:#ffcc00;--red:#ff4444;--orange:#ff9f0a;--radius:14px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:16px}
+.container{width:100%;max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid var(--border)}
+h1{font-size:20px;font-weight:600;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px}
+h1 small{font-size:13px;font-weight:400;color:var(--dim)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.field{flex:1;min-width:120px}
+.field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim);margin-bottom:4px}
+.field input,.field select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:16px;outline:none;transition:border 0.15s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--card);color:var(--text)}
+.registrar-hint{font-size:11px;color:var(--dim);text-align:center;margin-top:6px}
+.btn-primary:disabled{opacity:0.35;cursor:default}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{padding:12px;border-radius:10px;background:var(--bg);text-align:center}
+.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--dim)}
+.stat-value{font-size:22px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.stat-value.green{color:var(--green)}
+.stat-value.accent{color:var(--accent)}
+.stat-value.yellow{color:var(--yellow)}
+.stat-value.red{color:var(--red)}
+.timer-box{text-align:center;padding:20px 16px}
+.timer-display{font-size:52px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-2px;line-height:1;transition:color 0.3s}
+.timer-display.can-return{color:var(--green)}
+.timer-display.counting{color:var(--accent)}
+.timer-display.stopped{color:var(--dim)}
+.timer-display.worked{color:var(--orange)}
+.timer-display.worked-done{color:var(--green)}
+.timer-display.on-lunch{color:var(--yellow)}
+.timer-sub{font-size:13px;color:var(--dim);margin-top:8px}
+.section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--dim);text-align:center;padding-top:4px}
+.warning{padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.4}
+.warning.error{background:rgba(255,68,68,0.12);color:var(--red);border:1px solid rgba(255,68,68,0.2)}
+.warning.ok{background:rgba(76,217,100,0.12);color:var(--green);border:1px solid rgba(76,217,100,0.2)}
+.warning.info{background:rgba(108,140,255,0.12);color:var(--accent);border:1px solid rgba(108,140,255,0.2)}
+.warning.orange{background:rgba(255,159,10,0.12);color:var(--orange);border:1px solid rgba(255,159,10,0.2)}
+#warnings{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.hidden{display:none}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+@media(max-width:380px){
+  .grid{grid-template-columns:1fr}
+  .timer-display{font-size:40px}
+  .row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card" style="padding:16px 20px">
+    <h1>Ponto <small>controle de jornada</small></h1>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label>Entrada</label>
+        <input type="time" id="entrada">
+      </div>
+      <div class="field">
+        <label>Carga horária</label>
+        <select id="cargaHoraria">
+          <option value="6">6h</option>
+          <option value="8" selected>8h</option>
+          <option value="10">10h</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="field">
+        <label>Início almoço</label>
+        <input type="time" id="almocoInicio">
+      </div>
+      <div class="field">
+        <label>Fim almoço</label>
+        <input type="time" id="almocoFim">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="field">
+        <label>Saída</label>
+        <input type="time" id="saida">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btnRegistrar" style="margin-top:12px">⏺ Registrar entrada</button>
+    <p class="registrar-hint" id="registrarHint">Vai marcar sua entrada agora</p>
+
+  </div>
+
+  <div class="card" id="resultados" style="display:none">
+    <div class="section-label">Horas trabalhadas</div>
+    <div class="timer-box" style="padding:12px 16px 16px">
+      <div class="timer-display stopped" id="workedDisplay">--:--:--</div>
+      <div class="timer-sub" id="workedLabel">Aguardando entrada</div>
+    </div>
+
+    <div id="lunchSection" style="display:none">
+      <hr class="divider">
+      <div class="section-label">Almoço</div>
+      <div class="timer-box">
+        <div class="timer-display stopped" id="timerDisplay">--:--:--</div>
+        <div class="timer-sub" id="timerLabel">Aguardando...</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="grid">
+      <div class="stat">
+        <div class="stat-label">Jornada total</div>
+        <div class="stat-value accent" id="vJornadaTotal">--</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Almoço</div>
+        <div class="stat-value yellow" id="vAlmocoDur">--</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label" id="lSaida">Saída prevista</div>
+        <div class="stat-value green" id="vSaida">--</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Trabalho efetivo</div>
+        <div class="stat-value" id="vEfetivo">--</div>
+      </div>
+    </div>
+
+    <div id="warnings"></div>
+  </div>
+
+  <div class="card" id="emptyState">
+    <p style="color:var(--dim);font-size:14px;text-align:center">
+      Informe a <strong>entrada</strong> para iniciar o contador.<br>
+      Adicione o <strong>almoço</strong> para calcular a saída prevista.
+    </p>
+  </div>
+</div>
+
+<script>
+// ─── helpers ───
+function pad(n){return String(n).padStart(2,'0')}
+
+function timeToDate(str){
+  if(!str) return null
+  const [h,m]=str.split(':').map(Number)
+  const d=new Date()
+  d.setHours(h,m,0,0)
+  return d
+}
+
+function dateToTimeStr(d){
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function diffMin(a,b){
+  if(!a||!b) return null
+  const da=timeToDate(a), db=timeToDate(b)
+  return (db-da)/60000
+}
+
+function fmtMin(m){
+  if(m==null||m<0) return '--'
+  const h=Math.floor(m/60), min=Math.round(m%60)
+  if(h===0) return `${min}min`
+  if(min===0) return `${h}h`
+  return `${h}h${min}min`
+}
+
+function fmtDuration(ms){
+  if(ms==null||ms<0) return '--:--:--'
+  const s=Math.floor(ms/1000)%60
+  const m=Math.floor(ms/60000)%60
+  const h=Math.floor(ms/3600000)
+  return `${pad(h)}:${pad(m)}:${pad(s)}`
+}
+
+// ─── rules ───
+function minAlmocoMin(cargaMin){
+  if(cargaMin>360) return 60
+  if(cargaMin>240) return 15
+  return 0
+}
+
+// ─── state ───
+let timerInterval=null
+let timerTarget=null
+let workedInterval=null
+
+// ─── worked hours counter ───
+function updateWorked(){
+  const entrada=document.getElementById('entrada').value
+  const almocoInicio=document.getElementById('almocoInicio').value
+  const almocoFim=document.getElementById('almocoFim').value
+  const saida=document.getElementById('saida').value
+  const cargaH=parseInt(document.getElementById('cargaHoraria').value)
+  const cargaMin=cargaH*60
+
+  const wDisp=document.getElementById('workedDisplay')
+  const wLbl=document.getElementById('workedLabel')
+
+  if(!entrada){
+    wDisp.textContent='--:--:--'
+    wDisp.className='timer-display stopped'
+    wLbl.textContent='Aguardando entrada'
+    return
+  }
+
+  const saidaDate=saida?timeToDate(saida):null
+  const ref=saidaDate||new Date()
+  const entradaDate=timeToDate(entrada)
+  const almocoInicioDate=almocoInicio?timeToDate(almocoInicio):null
+  const almocoFimDate=almocoFim?timeToDate(almocoFim):null
+  const minAlm=minAlmocoMin(cargaMin)
+
+  let workedMs=0
+  let isOnLunch=false
+
+  if(!almocoInicioDate||ref<almocoInicioDate){
+    workedMs=ref-entradaDate
+  } else if(!almocoFimDate){
+    workedMs=almocoInicioDate-entradaDate
+    if(!saidaDate) isOnLunch=true
+  } else {
+    const lunchMs=almocoFimDate-almocoInicioDate
+    workedMs=ref-entradaDate-lunchMs
+    if(workedMs<0) workedMs=0
+  }
+
+  const workedMin=workedMs/60000
+  const isDone=workedMin>=cargaMin
+
+  wDisp.textContent=fmtDuration(workedMs)
+
+  if(saidaDate){
+    wDisp.className=isDone?'timer-display worked-done':'timer-display worked'
+    const diff=workedMin-cargaMin
+    if(isDone){
+      wLbl.textContent=diff>0?`✅ ${fmtMin(workedMin)} trabalhadas (+${fmtMin(diff)})`:'✅ Jornada completa!'
+    } else {
+      wLbl.textContent=`⚠️ ${fmtMin(workedMin)} trabalhadas (faltaram ${fmtMin(Math.abs(diff))})`
+    }
+  } else if(isOnLunch){
+    wDisp.className='timer-display on-lunch'
+    wLbl.textContent='⏸️ Em almoço'
+  } else if(isDone){
+    wDisp.className='timer-display worked-done'
+    const overMin=workedMin-cargaMin
+    wLbl.textContent=overMin>0?`✅ Jornada completa! (+${fmtMin(overMin)})`:'✅ Jornada completa!'
+  } else {
+    wDisp.className='timer-display worked'
+    const remaining=cargaMin-workedMin
+    wLbl.textContent=`⏱️ Faltam ${fmtMin(remaining)} para completar`
+  }
+
+}
+
+// ─── main calc ───
+function calcular(){
+  const entrada=document.getElementById('entrada').value
+  const almocoInicio=document.getElementById('almocoInicio').value
+  const almocoFim=document.getElementById('almocoFim').value
+  const saida=document.getElementById('saida').value
+  const cargaH=parseInt(document.getElementById('cargaHoraria').value)
+  const cargaMin=cargaH*60
+
+  const resultados=document.getElementById('resultados')
+  const emptyState=document.getElementById('emptyState')
+  const warnEl=document.getElementById('warnings')
+  const tDisp=document.getElementById('timerDisplay')
+  const tLabel=document.getElementById('timerLabel')
+  const lunchSection=document.getElementById('lunchSection')
+
+  const hasEntrada=!!entrada
+  const hasAlmocoInicio=!!almocoInicio
+
+  if(!hasEntrada){
+    resultados.style.display='none'
+    emptyState.style.display='block'
+    clearInterval(timerInterval); timerInterval=null
+    clearInterval(workedInterval); workedInterval=null
+    updateWorked()
+    return
+  }
+
+  resultados.style.display='block'
+  emptyState.style.display='none'
+
+  // Start worked counter (stop ticking when saida is registered)
+  clearInterval(workedInterval)
+  updateWorked()
+  if(!saida) workedInterval=setInterval(updateWorked,1000)
+
+  if(!hasAlmocoInicio){
+    document.getElementById('vJornadaTotal').textContent='--'
+    document.getElementById('vAlmocoDur').textContent='--'
+    document.getElementById('vSaida').textContent='--'
+    document.getElementById('vEfetivo').textContent='--'
+    lunchSection.style.display='none'
+    warnEl.innerHTML=''
+    clearInterval(timerInterval); timerInterval=null
+    return
+  }
+
+  lunchSection.style.display='block'
+
+  // Lunch duration
+  let almocoDurMin=null
+  if(almocoFim){
+    almocoDurMin=diffMin(almocoInicio,almocoFim)
+  }
+
+  const minAlm=minAlmocoMin(cargaMin)
+  const almocoEfetivoMin=almocoDurMin!==null?almocoDurMin:minAlm
+  const totalMin=cargaMin+almocoEfetivoMin
+
+  const entradaDate=timeToDate(entrada)
+  const almocoInicioDate=timeToDate(almocoInicio)
+  const fimDate=new Date(entradaDate.getTime()+totalMin*60000)
+  const saidaStr=dateToTimeStr(fimDate)
+  const efetivoMin=cargaMin
+
+  document.getElementById('vJornadaTotal').textContent=fmtMin(totalMin)
+  document.getElementById('vAlmocoDur').textContent=almocoDurMin!==null?fmtMin(almocoDurMin):fmtMin(minAlm)+' (mín)'
+
+  if(saida){
+    const saidaDate=timeToDate(saida)
+    const lunchMs=almocoEfetivoMin*60000
+    const realWorkedMin=(saidaDate-entradaDate-lunchMs)/60000
+    const diff=realWorkedMin-cargaMin
+    document.getElementById('lSaida').textContent='Saída real'
+    document.getElementById('vSaida').textContent=saida
+    document.getElementById('vEfetivo').textContent=fmtMin(realWorkedMin)
+    document.getElementById('vEfetivo').className='stat-value '+(diff>=0?'green':'red')
+  } else {
+    document.getElementById('lSaida').textContent='Saída prevista'
+    document.getElementById('vSaida').textContent=saidaStr
+    document.getElementById('vEfetivo').textContent=fmtMin(efetivoMin)
+    document.getElementById('vEfetivo').className='stat-value'
+  }
+
+  // Warnings
+  const warnings=[]
+  const dEntAlm=diffMin(entrada,almocoInicio)
+  if(dEntAlm!==null&&dEntAlm<0)  warnings.push('⛔ Almoço antes da entrada?')
+  if(dEntAlm!==null&&dEntAlm>=0&&dEntAlm<15) warnings.push('⛔ Menos de 15 min entre entrada e almoço.')
+  if(dEntAlm!==null&&dEntAlm>=15&&dEntAlm<60) warnings.push('⛔ Almoço deve ser no mínimo 1h após a entrada.')
+
+  if(almocoDurMin!==null){
+    if(almocoDurMin<15) warnings.push('⛔ Almoço menor que 15 min.')
+    else if(almocoDurMin<minAlm) warnings.push(`⛔ Almoço de ${fmtMin(almocoDurMin)} é menor que o mínimo de ${fmtMin(minAlm)}.`)
+    const dFimSai=diffMin(almocoFim,saidaStr)
+    if(dFimSai!==null&&dFimSai<60) warnings.push('⛔ Menos de 1h de trabalho após o almoço até a saída.')
+  }
+
+  if(warnings.length){
+    warnEl.innerHTML=warnings.map(w=>`<div class="warning error">${w}</div>`).join('')
+  } else {
+    if(almocoDurMin!==null){
+      warnEl.innerHTML=`<div class="warning ok">✅ Almoço de ${fmtMin(almocoDurMin)}. Saída às ${saidaStr}.</div>`
+    } else {
+      warnEl.innerHTML=`<div class="warning info">ℹ️ Almoço mínimo ${fmtMin(minAlm)}. Saída prevista às ${saidaStr}.</div>`
+    }
+  }
+
+  // ─── Lunch timer ───
+  clearInterval(timerInterval)
+
+  let targetTime=null
+  if(almocoFim){
+    const d=timeToDate(almocoFim)
+    if(d) targetTime=d.getTime()
+    if(targetTime) tLabel.textContent='⏳ Tempo de almoço restante'
+  } else if(hasAlmocoInicio){
+    targetTime=new Date(almocoInicioDate.getTime()+minAlm*60000).getTime()
+    tLabel.textContent='⏳ Mínimo de almoço restante'
+  }
+
+  if(targetTime){
+    timerTarget=targetTime
+    tDisp.className='timer-display counting'
+    timerInterval=setInterval(function(){
+      const now=Date.now()
+      const diff=timerTarget-now
+      if(diff>0){
+        tDisp.textContent=fmtDuration(diff)
+        tDisp.className='timer-display counting'
+      } else {
+        tDisp.textContent='00:00:00'
+        tDisp.className='timer-display can-return'
+        tLabel.textContent=almocoFim?'✅ Almoço encerrado!':'✅ Pode retornar do almoço!'
+        clearInterval(timerInterval)
+      }
+    },1000)
+    const diff=targetTime-Date.now()
+    tDisp.textContent=diff>0?fmtDuration(diff):'00:00:00'
+    tDisp.className=diff>0?'timer-display counting':'timer-display can-return'
+  } else {
+    tDisp.textContent='--:--:--'
+    tDisp.className='timer-display stopped'
+    tLabel.textContent='Aguardando...'
+  }
+}
+
+// ─── smart register button ───
+function updateRegistrarBtn(){
+  const entrada=document.getElementById('entrada').value
+  const almocoInicio=document.getElementById('almocoInicio').value
+  const almocoFim=document.getElementById('almocoFim').value
+  const saida=document.getElementById('saida').value
+  const btn=document.getElementById('btnRegistrar')
+  const hint=document.getElementById('registrarHint')
+  if(!entrada){
+    btn.textContent='⏺ Registrar entrada'
+    btn.disabled=false
+    hint.textContent='Vai marcar sua entrada agora'
+  } else if(!almocoInicio){
+    btn.textContent='⏺ Registrar início do almoço'
+    btn.disabled=false
+    hint.textContent='Vai marcar a saída para almoço agora'
+  } else if(!almocoFim){
+    btn.textContent='⏺ Registrar retorno do almoço'
+    btn.disabled=false
+    hint.textContent='Vai marcar o retorno do almoço agora'
+  } else if(!saida){
+    btn.textContent='⏺ Registrar saída'
+    btn.disabled=false
+    hint.textContent='Vai encerrar e fechar a jornada agora'
+  } else {
+    btn.textContent='✅ Dia registrado'
+    btn.disabled=true
+    hint.textContent='Jornada encerrada'
+  }
+}
+
+// ─── events ───
+document.getElementById('entrada').addEventListener('input',function(){calcular();updateRegistrarBtn()})
+document.getElementById('almocoInicio').addEventListener('input',function(){calcular();updateRegistrarBtn()})
+document.getElementById('almocoFim').addEventListener('input',function(){calcular();updateRegistrarBtn()})
+document.getElementById('saida').addEventListener('input',function(){calcular();updateRegistrarBtn()})
+document.getElementById('cargaHoraria').addEventListener('change',calcular)
+
+document.getElementById('btnRegistrar').addEventListener('click',function(){
+  const now=new Date()
+  const timeStr=`${pad(now.getHours())}:${pad(now.getMinutes())}`
+  const entrada=document.getElementById('entrada').value
+  const almocoInicio=document.getElementById('almocoInicio').value
+  const almocoFim=document.getElementById('almocoFim').value
+  const saida=document.getElementById('saida').value
+  if(!entrada){
+    document.getElementById('entrada').value=timeStr
+  } else if(!almocoInicio){
+    document.getElementById('almocoInicio').value=timeStr
+  } else if(!almocoFim){
+    document.getElementById('almocoFim').value=timeStr
+  } else if(!saida){
+    document.getElementById('saida').value=timeStr
+  }
+  calcular()
+  updateRegistrarBtn()
+})
+</script>
+</body>
+</html>
